@@ -2,24 +2,16 @@ module Game where
 
 import Prelude
 
-import Control.Monad.RWS (modify)
-import Control.Monad.State (State)
-import Data.Array (sortWith, take)
-import Data.Int (toNumber)
-import Data.Maybe (Maybe(..))
-import Data.Set (Set, singleton, fromFoldable)
-import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..), fst, snd)
+import Data.Array (head, take)
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Set (Set, difference, fromFoldable, member, singleton)
 import Edge (Edge(..))
-import Random.LCG (Seed, lcgM, lcgNext, unSeed)
+import Gen (Gen, shuffle)
 import Room (Room(..), roomList)
 
 
-type Lang = Int
 type Game =
-    { lang :: Lang
-    , map :: Set (Edge Room)
-    , wumpusRoom :: Room
+    { wumpusRoom :: Room
     , wumpusAlive :: Boolean
     , pitRooms :: Set Room
     , batRooms :: Set Room
@@ -31,28 +23,13 @@ nonEmptyRooms :: Game -> Set Room
 nonEmptyRooms {playerRoom, wumpusRoom, pitRooms, batRooms} =
     batRooms <> batRooms <> singleton playerRoom <> singleton wumpusRoom
 
-type Gen a = State Seed a
-
-nextInt :: Gen Int
-nextInt =
-    unSeed <$> modify lcgNext
-
-nextNumber :: Gen Number
-nextNumber = (\x -> toNumber x / toNumber lcgM) <$> nextInt
-
-arrayShuffle :: forall a. Array a -> Gen (Array a)
-arrayShuffle = traverse f >>> map (sortWith snd >>> map fst)
-    where f e = Tuple e <$> nextInt
-
-init :: Lang -> Gen (Maybe Game)
-init l = do
-    rooms <- arrayShuffle roomList
+init :: Gen (Maybe Game)
+init = do
+    rooms <- shuffle roomList
     let game = case take 6 rooms of
          [wumpusRoom, pit1, pit2, bat1, bat2, player] ->
              Just
-                 { lang: l
-                 , map: gameMap
-                 , wumpusRoom: wumpusRoom
+                 { wumpusRoom: wumpusRoom
                  , wumpusAlive: true
                  , pitRooms: fromFoldable [pit1, pit2]
                  , batRooms: fromFoldable [bat1, bat2]
@@ -61,6 +38,25 @@ init l = do
                  }
          _ -> Nothing
     pure game
+
+vacantRoom :: Game -> Gen (Maybe Room)
+vacantRoom = nonEmptyRooms >>> difference roomList >>> shuffle >>> map head
+
+onMove :: Room -> Game -> Gen Game
+onMove r g =
+    if member r g.batRooms then
+        vacantRoom g # map (fromMaybe r >>> g {playerRoom = _})
+    else
+        pure $ g { playerRoom = r }
+
+onShoot :: Room -> Game -> Gen Game
+onShoot r g =
+    if r == g.wumpusRoom then
+        pure $ g { wumpusAlive = false }
+    else
+        vacantRoom g # map (fromMaybe g.wumpusRoom >>>
+                            g { wumpusRoom = _
+                              , arrowTotal = g.arrowTotal - 1 })
 
 gameMap :: Set (Edge Room)
 gameMap =

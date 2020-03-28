@@ -30,11 +30,6 @@ render state =
     [ HH.text label ]
 
 
-{--
-newtype HalogenM state action slots output m a =
-    HalogenM (Free (HalogenF state action slots output m) a)
---}
-
 handleAction :: forall o m. MonadEffect m => Action -> H.HalogenM State Action () o m Unit
 handleAction = case _ of
     Toggle -> do
@@ -49,3 +44,9 @@ component =
         , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
         }
 
+{-
+    [Стрелять] [Идти]
+    Стрелять -> [1] [2] [3]
+
+    LOG...
+-}

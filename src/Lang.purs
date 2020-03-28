@@ -1,6 +1,6 @@
 module Lang where
 
-type Lang = 
+type Lang =
     { batsNearby :: String
     , pitNearby :: String
     , wumpusNearby :: String
@@ -12,18 +12,21 @@ type Lang =
     , missed :: String
     , bye :: String
     , unknownCommand :: String
-    , shootOrMove :: String
+    , cancelCommand :: String
+    , shoot:: String
+    , move :: String
     , wumpusKill :: String
     , fell :: String
     , outOfArrows :: String
     , batsMoveYou :: String
     , intro :: String
     , win :: String
+    , youAreHere :: String
     }
 
 en :: Lang
-en = 
-    { intro: "Hunt the Wumpus. You are in the room"
+en =
+    { intro: "Hunt the Wumpus. You are in a room"
     , batsNearby: "Bats nearby"
     , pitNearby: "Pit nearby"
     , wumpusNearby: "Wumpus nearby"
@@ -35,12 +38,15 @@ en =
     , missed: "You missed and seemed to frighten off Wumpus"
     , bye: "Bye"
     , unknownCommand: "Unknown command"
-    , shootOrMove: "Shoot or move"
+    , cancelCommand: "Cancel command"
+    , shoot: "Shoot"
+    , move: "Move"
     , wumpusKill: "Wumpus killed you :("
     , fell: "You fell into a pit :("
     , outOfArrows: "Out of arrows :("
     , batsMoveYou: "Bats move you to another room"
     , win: "You win"
+    , youAreHere: "You are in a room #"
     }
 
 ru :: Lang
@@ -53,14 +59,17 @@ ru =
     , arrows: "Стрелы"
     , whatDirection: "Куда"
     , unknownDirection: "Незнамо куда"
+    , cancelCommand: "Отменить команду"
     , moveTo: "Пошли на"
     , missed: "Промазали и, похоже, спугнули Вумпуса"
     , bye: "Покедова"
     , unknownCommand: "Не знаю такую команду"
-    , shootOrMove: "Стрельнём или пойдём"
+    , shoot: "Стрелять"
+    , move: "Идти"
     , wumpusKill: "Вумпус тебя съел :("
     , fell: "Упали в яму :("
     , outOfArrows: "Стрелы закончились :("
     , batsMoveYou: "Летучие мыши перенесли вас в другую комнату"
     , win: "Победа!"
+    , youAreHere: "Вы в комнате №"
     }
