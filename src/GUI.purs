@@ -2,11 +2,14 @@ module GUI where
 
 import Prelude
 
-import Control.Monad.State (runState)
-import Data.Array (intercalate, fromFoldable)
+import Control.Monad.State as MS
+import Data.Array (filter, fromFoldable, intercalate)
 import Data.Maybe (Maybe(..), maybe)
+import Data.Set (Set, intersection, isEmpty, member)
+import Data.String (null)
 import Data.Tuple (Tuple(..))
 import Game (Game, adjacentRooms, onMove, onShoot)
+import Gen (Gen)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -23,6 +26,7 @@ type GUIState =
     , seed :: Seed
     }
 
+
 type InitParams = Tuple Seed Game
 
 initialState :: InitParams -> GUIState
@@ -35,7 +39,7 @@ initialState (Tuple seed game) =
 
 data Action
     = SelectCommand PlayerCommand
-    | UnselectCommand
+    | CancelCommand
     | DoCommand PlayerCommand Room
 
 getCommandLabel :: Lang -> PlayerCommand -> String
@@ -63,64 +67,76 @@ renderDirectionButton c room =
         [ HH.text $ show room]
 
 
-renderSelectedCommand :: forall m. Lang -> Game -> PlayerCommand -> H.ComponentHTML Action () m
-renderSelectedCommand l game c =
+renderSelectedCommand :: forall m. Lang -> Set Room -> PlayerCommand -> H.ComponentHTML Action () m
+renderSelectedCommand l adjacent c =
     HH.p []
         [ HH.text $ getCommandLabel l c
         , HH.button
             [ HP.title l.cancelCommand
-            , HE.onClick (\_ -> Just $ UnselectCommand)
+            , HE.onClick (\_ -> Just $ CancelCommand)
             ]
             [ HH.text "×"]
-        , HH.span [] (adjacentRooms game # fromFoldable # map (renderDirectionButton c))
+        , HH.span [] (map (renderDirectionButton c) $ fromFoldable adjacent)
         ]
 
-renderStatus :: forall m. Lang -> Game -> H.ComponentHTML Action () m
-renderStatus lang game =
+renderStatus :: forall m. Lang -> Set Room -> Game -> H.ComponentHTML Action () m
+renderStatus lang adjacent game =
     let
-        adjacent = adjacentRooms game # fromFoldable # map show # intercalate ", "
+        adjacentStr = adjacent # fromFoldable # map show # intercalate ", "
+        hasBats = intersection adjacent game.batRooms # isEmpty
+        hasPits = intersection adjacent game.pitRooms # isEmpty
+        hasWumpus = member game.wumpusRoom adjacent
+        messages =
+            [ if (hasBats) then lang.batsNearby else ""
+            , if (hasPits) then lang.pitNearby else ""
+            , if (hasWumpus) then lang.wumpusNearby else ""
+            ] # filter (not <<< null) # intercalate ", "
      in
     HH.div []
         [ HH.p [] [ HH.text $ lang.youAreHere <> " " <> show game.playerRoom ]
-        , HH.p [] [ HH.text $ lang.youSeeRooms <> " " <> adjacent ]
+        , HH.p [] [ HH.text $ lang.youSeeRooms <> " " <> adjacentStr ]
         , HH.p [] [ HH.text $ lang.arrows <> ": " <> show game.arrowTotal ]
+        , HH.p [] [ HH.text messages ]
         ]
 
 render :: forall m. GUIState -> H.ComponentHTML Action () m
 render state =
     let
+        adjacent = adjacentRooms state.game
         commandButtons =
             HH.div []
                 [ renderCommandButton state.lang Shoot
                 , renderCommandButton state.lang Move
                 ]
         renderedCommand =
-            maybe commandButtons (renderSelectedCommand state.lang state.game) state.command
+            maybe commandButtons (renderSelectedCommand state.lang adjacent) state.command
      in
     HH.div []
-        [ renderStatus state.lang state.game
+        [ renderStatus state.lang adjacent state.game
         , renderedCommand
         ]
 
 
+runGen :: forall m. MS.MonadState GUIState m => (Game -> Gen Game) -> m Unit
+runGen f =
+    MS.modify_ \s ->
+    let Tuple newGame newSeed = MS.runState (f s.game) s.seed
+     in s { game = newGame, seed = newSeed }
+
+cancelCommand :: forall o m. H.HalogenM GUIState Action () o m Unit
+cancelCommand = H.modify_ \s -> s { command = Nothing }
+
 handleAction ∷ forall o m. Action -> H.HalogenM GUIState Action () o m Unit
 handleAction = case _ of
-  SelectCommand c ->
-    H.modify_ _ { command = Just c }
-  UnselectCommand ->
-    H.modify_ _ { command = Nothing }
-  DoCommand Move r ->
-    H.modify_ \s ->
-        let
-            Tuple newGame newSeed = runState (onMove r s.game) s.seed
-         in
-            s { command = Nothing, game = newGame, seed = newSeed }
-  DoCommand Shoot r ->
-    H.modify_ \s ->
-        let
-            Tuple newGame newSeed = runState (onShoot r s.game) s.seed
-         in
-            s { command = Nothing, game = newGame, seed = newSeed }
+    SelectCommand c ->
+        H.modify_ _ { command = Just c }
+    CancelCommand ->
+        cancelCommand
+    DoCommand Move r ->
+        runGen (onMove r) *> cancelCommand
+    DoCommand Shoot r ->
+        runGen (onShoot r) *> cancelCommand
+
 
 component :: forall q o m. H.Component HH.HTML q InitParams o m
 component =

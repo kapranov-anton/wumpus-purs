@@ -2,18 +2,15 @@ module Gen where
 
 import Prelude
 
-import Control.Monad.RWS (modify)
-import Control.Monad.State (StateT)
+import Control.Monad.State (State, modify)
 import Data.Array (fromFoldable, sortWith)
 import Data.Foldable (class Foldable)
-import Data.Identity (Identity)
 import Data.Int (toNumber)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd)
 import Random.LCG (Seed, lcgM, lcgNext, unSeed)
 
-type GenF m = StateT Seed m
-type Gen = GenF Identity
+type Gen = State Seed
 
 nextInt :: Gen Int
 nextInt =

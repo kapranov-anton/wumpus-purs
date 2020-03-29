@@ -2,7 +2,6 @@ module Main where
 
 import Prelude
 
-import Button as Button
 import Control.Monad.State (runState)
 import Data.Maybe (maybe)
 import Data.Tuple (Tuple(..))

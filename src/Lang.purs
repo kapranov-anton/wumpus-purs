@@ -54,9 +54,9 @@ en =
 ru :: Lang
 ru =
     { intro: "Победи Вумпуса. Ты в комнате"
-    , batsNearby: "Летучие мыши рядом"
-    , pitNearby: "Яма рядом"
-    , wumpusNearby: "Вумпус рядом"
+    , batsNearby: "В соседней комнате летучие мыши"
+    , pitNearby: "В соседней комнате яма"
+    , wumpusNearby: "В соседней комнате Вумпус"
     , roomsNearby: "Комнаты рядом"
     , arrows: "Стрелы"
     , whatDirection: "Куда"
