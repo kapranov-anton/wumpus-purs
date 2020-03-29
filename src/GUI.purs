@@ -4,10 +4,11 @@ import Prelude
 
 import Control.Monad.State as MS
 import Data.Array (filter, fromFoldable, intercalate)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
 import Data.Set (Set, intersection, isEmpty, member)
 import Data.String (null)
 import Data.Tuple (Tuple(..))
+import Debug.Trace (spy)
 import Game (Game, adjacentRooms, onMove, onShoot)
 import Gen (Gen)
 import Halogen as H
@@ -66,7 +67,6 @@ renderDirectionButton c room =
         ]
         [ HH.text $ show room]
 
-
 renderSelectedCommand :: forall m. Lang -> Set Room -> PlayerCommand -> H.ComponentHTML Action () m
 renderSelectedCommand l adjacent c =
     HH.p []
@@ -83,8 +83,8 @@ renderStatus :: forall m. Lang -> Set Room -> Game -> H.ComponentHTML Action () 
 renderStatus lang adjacent game =
     let
         adjacentStr = adjacent # fromFoldable # map show # intercalate ", "
-        hasBats = intersection adjacent game.batRooms # isEmpty
-        hasPits = intersection adjacent game.pitRooms # isEmpty
+        hasBats = intersection adjacent game.batRooms # isEmpty # not
+        hasPits = intersection adjacent game.pitRooms # isEmpty # not
         hasWumpus = member game.wumpusRoom adjacent
         messages =
             [ if (hasBats) then lang.batsNearby else ""
@@ -99,8 +99,9 @@ renderStatus lang adjacent game =
         , HH.p [] [ HH.text messages ]
         ]
 
-render :: forall m. GUIState -> H.ComponentHTML Action () m
-render state =
+
+renderCommandSelector :: forall m. GUIState -> H.ComponentHTML Action () m
+renderCommandSelector state =
     let
         adjacent = adjacentRooms state.game
         commandButtons =
@@ -115,6 +116,26 @@ render state =
         [ renderStatus state.lang adjacent state.game
         , renderedCommand
         ]
+
+deathCause :: Lang -> Game -> Maybe String
+deathCause lang game
+    | game.wumpusRoom == game.playerRoom = Just lang.wumpusKill
+    | member game.playerRoom game.pitRooms = Just lang.fell
+    | game.arrowTotal == 0 = Just lang.outOfArrows
+    | otherwise = Nothing
+
+render :: forall m. GUIState -> H.ComponentHTML Action () m
+render state =
+    let
+        _ = spy ">>>" state
+        death = deathCause state.lang state.game
+     in
+    if isJust death then
+        HH.p [] [ HH.text $ fromMaybe "" death ]
+    else if not state.game.wumpusAlive then
+        HH.p [] [ HH.text state.lang.win ]
+    else
+        renderCommandSelector state
 
 
 runGen :: forall m. MS.MonadState GUIState m => (Game -> Gen Game) -> m Unit

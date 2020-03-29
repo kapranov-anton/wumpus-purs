@@ -21,7 +21,7 @@ type Game =
 
 nonEmptyRooms :: Game -> Set Room
 nonEmptyRooms {playerRoom, wumpusRoom, pitRooms, batRooms} =
-    batRooms <> batRooms <> singleton playerRoom <> singleton wumpusRoom
+    batRooms <> pitRooms <> singleton playerRoom <> singleton wumpusRoom
 
 init :: Gen (Maybe Game)
 init = do

@@ -6,6 +6,7 @@ You can edit this file as you like.
 , dependencies =
   [ "assert"
   , "console"
+  , "debug"
   , "effect"
   , "halogen"
   , "lcg"
