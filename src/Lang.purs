@@ -22,6 +22,7 @@ type Lang =
     , intro :: String
     , win :: String
     , youAreHere :: String
+    , youSeeRooms :: String
     }
 
 en :: Lang
@@ -47,6 +48,7 @@ en =
     , batsMoveYou: "Bats move you to another room"
     , win: "You win"
     , youAreHere: "You are in a room #"
+    , youSeeRooms: "You see rooms ##"
     }
 
 ru :: Lang
@@ -72,4 +74,5 @@ ru =
     , batsMoveYou: "Летучие мыши перенесли вас в другую комнату"
     , win: "Победа!"
     , youAreHere: "Вы в комнате №"
+    , youSeeRooms: "Вы видите команты №№"
     }

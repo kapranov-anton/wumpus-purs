@@ -12,8 +12,8 @@ derive instance ordEdge :: Ord a => Ord (Edge a)
 instance functorEdge :: Functor Edge where
     map f (Edge x y) = Edge (f x) (f y)
 
-linked :: forall a. Eq a =>  Edge a -> a -> Maybe a
-linked (Edge r1 r2) r
+linked :: forall a. Eq a => a -> Edge a -> Maybe a
+linked r (Edge r1 r2)
     | r == r1 = Just r2
     | r == r2 = Just r1
     | otherwise = Nothing

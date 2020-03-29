@@ -4,10 +4,10 @@ import Prelude
 
 import Data.Array (head, take)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Set (Set, difference, fromFoldable, member, singleton)
-import Edge (Edge(..))
+import Data.Set (Set, difference, fromFoldable, mapMaybe, member, singleton)
+import Edge (Edge(..), linked)
 import Gen (Gen, shuffle)
-import Room (Room(..), roomList)
+import Room (Room(..), roomSet)
 
 
 type Game =
@@ -25,7 +25,7 @@ nonEmptyRooms {playerRoom, wumpusRoom, pitRooms, batRooms} =
 
 init :: Gen (Maybe Game)
 init = do
-    rooms <- shuffle roomList
+    rooms <- shuffle roomSet
     let game = case take 6 rooms of
          [wumpusRoom, pit1, pit2, bat1, bat2, player] ->
              Just
@@ -39,8 +39,12 @@ init = do
          _ -> Nothing
     pure game
 
+adjacentRooms :: Game -> Set Room
+adjacentRooms game =
+    mapMaybe (linked game.playerRoom) gameMap
+
 vacantRoom :: Game -> Gen (Maybe Room)
-vacantRoom = nonEmptyRooms >>> difference roomList >>> shuffle >>> map head
+vacantRoom = nonEmptyRooms >>> difference roomSet >>> shuffle >>> map head
 
 onMove :: Room -> Game -> Gen Game
 onMove r g =

@@ -2,7 +2,7 @@ module Room where
 
 import Prelude
 
-import Data.Array (range)
+import Data.Array ((..))
 import Data.Set (Set, fromFoldable)
 
 newtype Room = Room Int
@@ -11,6 +11,6 @@ derive instance ordRoom :: Ord Room
 instance showRoom :: Show Room where
     show (Room x) = show x
 
-roomList :: Set Room
-roomList = fromFoldable $ Room <$> range 1 20
+roomSet :: Set Room
+roomSet = fromFoldable $ Room <$> 1 .. 20
 
