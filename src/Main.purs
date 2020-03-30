@@ -13,17 +13,16 @@ import GUI as GUI
 import Game (Game, init)
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
-import Random.LCG (Seed, mkSeed)
+import Random.LCG (Seed, randomSeed)
 
 
 initGame :: Effect (Tuple Seed Game)
-initGame =
+initGame = do
+    initSeed <- randomSeed
     let
-        initSeed = mkSeed 1
         Tuple maybeGame seed = runState init initSeed
         cannotInitGame = throwException (error "Cannot initialize a game")
-      in
-     Tuple seed <$> maybe cannotInitGame pure maybeGame
+    Tuple seed <$> maybe cannotInitGame pure maybeGame
 
 main :: Effect Unit
 main = HA.runHalogenAff do
