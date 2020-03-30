@@ -3,13 +3,13 @@ module GUI where
 import Prelude
 
 import Control.Monad.State as MS
-import Data.Array (filter, fromFoldable, intercalate)
-import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
+import Data.Array (any, filter, fromFoldable, intercalate, (:))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Set (Set, intersection, isEmpty, member)
 import Data.String (null)
 import Data.Tuple (Tuple(..))
-import Debug.Trace (spy)
-import Game (Game, adjacentRooms, onMove, onShoot)
+import Data.Tuple.Nested ((/\), type (/\))
+import Game (Game, GameOverCause(..), TurnResult(..), adjacentRooms, onMove, onShoot, isGameOver)
 import Gen (Gen)
 import Halogen as H
 import Halogen.HTML as HH
@@ -25,6 +25,7 @@ type GUIState =
     , lang :: Lang
     , game :: Game
     , seed :: Seed
+    , turnLog :: Array TurnResult
     }
 
 
@@ -36,6 +37,7 @@ initialState (Tuple seed game) =
     , lang: ru
     , game: game
     , seed: seed
+    , turnLog: []
     }
 
 data Action
@@ -69,15 +71,17 @@ renderDirectionButton c room =
 
 renderSelectedCommand :: forall m. Lang -> Set Room -> PlayerCommand -> H.ComponentHTML Action () m
 renderSelectedCommand l adjacent c =
-    HH.p []
+    HH.div []
+    [ HH.p []
         [ HH.text $ getCommandLabel l c
         , HH.button
             [ HP.title l.cancelCommand
             , HE.onClick (\_ -> Just $ CancelCommand)
             ]
             [ HH.text "×"]
-        , HH.span [] (map (renderDirectionButton c) $ fromFoldable adjacent)
         ]
+    , HH.p [] (map (renderDirectionButton c) $ fromFoldable adjacent)
+    ]
 
 renderStatus :: forall m. Lang -> Set Room -> Game -> H.ComponentHTML Action () m
 renderStatus lang adjacent game =
@@ -117,32 +121,35 @@ renderCommandSelector state =
         , renderedCommand
         ]
 
-deathCause :: Lang -> Game -> Maybe String
-deathCause lang game
-    | game.wumpusRoom == game.playerRoom = Just lang.wumpusKill
-    | member game.playerRoom game.pitRooms = Just lang.fell
-    | game.arrowTotal == 0 = Just lang.outOfArrows
-    | otherwise = Nothing
+showLogEntry :: Lang -> TurnResult -> String
+showLogEntry lang = case _ of
+    GameOver Win -> lang.win
+    GameOver KilledByWumpus -> lang.wumpusKill
+    GameOver FellIntoAPit -> lang.fell
+    GameOver OutOfArrows -> lang.outOfArrows
+    Missed -> lang.missed
+    MovedByBats { from, to } -> lang.batsMoveYou <> " " <> show from <> " → " <> show to
+    MovedTo r -> lang.moveTo <> " " <> show r
 
 render :: forall m. GUIState -> H.ComponentHTML Action () m
 render state =
     let
-        _ = spy ">>>" state
-        death = deathCause state.lang state.game
+        renderEntry e = HH.p [] [HH.text $ showLogEntry state.lang e ]
      in
-    if isJust death then
-        HH.p [] [ HH.text $ fromMaybe "" death ]
-    else if not state.game.wumpusAlive then
-        HH.p [] [ HH.text state.lang.win ]
-    else
-        renderCommandSelector state
+    HH.div []
+        [ if (any isGameOver state.turnLog)
+              then HH.text ""
+              else renderCommandSelector state
+        , HH.hr_
+        , HH.div [] (renderEntry <$> state.turnLog)
+        ]
 
 
-runGen :: forall m. MS.MonadState GUIState m => (Game -> Gen Game) -> m Unit
+runGen :: forall m. MS.MonadState GUIState m => (Game -> Gen (Game /\ TurnResult)) -> m Unit
 runGen f =
     MS.modify_ \s ->
-    let Tuple newGame newSeed = MS.runState (f s.game) s.seed
-     in s { game = newGame, seed = newSeed }
+    let Tuple (newGame /\ tr) newSeed = MS.runState (f s.game) s.seed
+     in s { game = newGame, seed = newSeed, turnLog = tr : s.turnLog }
 
 cancelCommand :: forall o m. H.HalogenM GUIState Action () o m Unit
 cancelCommand = H.modify_ \s -> s { command = Nothing }

@@ -7,11 +7,8 @@ type Lang =
     , roomsNearby :: String
     , arrows :: String
     , whatDirection :: String
-    , unknownDirection :: String
     , moveTo :: String
     , missed :: String
-    , bye :: String
-    , unknownCommand :: String
     , cancelCommand :: String
     , shoot:: String
     , move :: String
@@ -34,11 +31,8 @@ en =
     , roomsNearby: "Rooms nearby"
     , arrows: "Arrows"
     , whatDirection: "What direction"
-    , unknownDirection: "Unknown direction"
     , moveTo: "Move to"
     , missed: "You missed and seemed to frighten off Wumpus"
-    , bye: "Bye"
-    , unknownCommand: "Unknown command"
     , cancelCommand: "Cancel command"
     , shoot: "Shoot"
     , move: "Move"
@@ -60,12 +54,9 @@ ru =
     , roomsNearby: "Комнаты рядом"
     , arrows: "Стрелы"
     , whatDirection: "Куда"
-    , unknownDirection: "Незнамо куда"
     , cancelCommand: "Отменить команду"
     , moveTo: "Пошли на"
     , missed: "Промазали и, похоже, спугнули Вумпуса"
-    , bye: "Покедова"
-    , unknownCommand: "Не знаю такую команду"
     , shoot: "Стрелять"
     , move: "Идти"
     , wumpusKill: "Вумпус тебя съел :("

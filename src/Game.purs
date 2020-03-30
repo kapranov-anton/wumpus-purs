@@ -5,6 +5,7 @@ import Prelude
 import Data.Array (head, take)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set, difference, fromFoldable, mapMaybe, member, singleton)
+import Data.Tuple.Nested ((/\), type (/\))
 import Edge (Edge(..), linked)
 import Gen (Gen, shuffle)
 import Room (Room(..), roomSet)
@@ -18,6 +19,23 @@ type Game =
     , playerRoom :: Room
     , arrowTotal :: Int
     }
+
+data GameOverCause
+    = Win
+    | KilledByWumpus
+    | FellIntoAPit
+    | OutOfArrows
+
+data TurnResult
+    = GameOver GameOverCause
+    | Missed
+    | MovedByBats { from :: Room, to :: Room }
+    | MovedTo Room
+
+isGameOver :: TurnResult -> Boolean
+isGameOver = case _ of
+    GameOver _ -> true
+    _ -> false
 
 nonEmptyRooms :: Game -> Set Room
 nonEmptyRooms {playerRoom, wumpusRoom, pitRooms, batRooms} =
@@ -46,21 +64,38 @@ adjacentRooms game =
 vacantRoom :: Game -> Gen (Maybe Room)
 vacantRoom = nonEmptyRooms >>> difference roomSet >>> shuffle >>> map head
 
-onMove :: Room -> Game -> Gen Game
+onMove :: Room -> Game -> Gen (Game /\ TurnResult)
 onMove r g =
     if member r g.batRooms then
-        vacantRoom g # map (fromMaybe r >>> g {playerRoom = _})
+        vacantRoom g # map \maybeRoom ->
+            let
+                newRoom = fromMaybe r maybeRoom
+             in
+             g { playerRoom = newRoom } /\ MovedByBats { from: r, to: newRoom }
     else
-        pure $ g { playerRoom = r }
+        let
+            sideEffect =
+                if r == g.wumpusRoom then
+                    GameOver KilledByWumpus
+                else if member r g.pitRooms then
+                    GameOver FellIntoAPit
+                else
+                    MovedTo r
+         in
+        pure $ g { playerRoom = r } /\ sideEffect
 
-onShoot :: Room -> Game -> Gen Game
+onShoot :: Room -> Game -> Gen (Game /\ TurnResult)
 onShoot r g =
     if r == g.wumpusRoom then
-        pure $ g { wumpusAlive = false }
+        pure $ g { wumpusAlive = false } /\ GameOver Win
     else
-        vacantRoom g # map (fromMaybe g.wumpusRoom >>>
-                            g { wumpusRoom = _
-                              , arrowTotal = g.arrowTotal - 1 })
+        let
+            sideEffect = if g.arrowTotal > 1 then Missed else GameOver OutOfArrows
+         in
+        vacantRoom g # map \maybeRoom ->
+            g { wumpusRoom = fromMaybe g.wumpusRoom maybeRoom
+              , arrowTotal = g.arrowTotal - 1
+              } /\ sideEffect
 
 gameMap :: Set (Edge Room)
 gameMap =
